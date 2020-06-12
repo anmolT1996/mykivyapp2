@@ -11,10 +11,10 @@ from kivy.uix.textinput import TextInput
 from kivy.core.window import Window
 from kivy.uix.popup import  Popup
 from kivy.uix.scrollview import ScrollView
-from prettytable import PrettyTable
+# from prettytable import PrettyTable
 
-tableview = PrettyTable()
-tableData = ''
+# tableview = PrettyTable()
+# tableData = ''
 heading = Label(text='Jagdamba Saree Palace',font_size = 30,color=[212,175,55,1])
 heading.pos_hint= {'x': 0.01, 'y': 0.4}
 Window.add_widget(heading)
@@ -350,10 +350,10 @@ class SliderScreenUi(ScrollView):
         except:
             pass
         data = self.db.exportData()
-        tableview.field_names = ['Saree Name','Cp','Sp','SareeNo','Date']
-        for tuple in data:
-            tableview.add_row(list(tuple))
-        print(tableview)
+        # tableview.field_names = ['Saree Name','Cp','Sp','SareeNo','Date']
+        # for tuple in data:
+        #     tableview.add_row(list(tuple))
+        # print(tableview)
     def backToMenu(self,obj):
         global scroll_label,menu_label
         menu_label.opacity = 1
