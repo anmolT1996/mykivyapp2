@@ -5,7 +5,6 @@ from kivy.app import App
 from kivy .uix.screenmanager import  ScreenManager,Screen,SlideTransition
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import  GridLayout
-from kivy.uix.boxlayout import  BoxLayout
 from kivy.uix.label import  Label
 from kivy.uix.textinput import TextInput
 from kivy.core.window import Window
@@ -20,9 +19,7 @@ popup = Popup(title='Invalid Input',
     content=Label(text='TRY Again!!!!',color=[1,0,0,1]),
     size_hint=(None, None), size=(200, 200))
 
-list_popup = Popup(title='Invalid Input',
-    content=Label(text=tableData,color=[1,1,1,1]),
-    size_hint=(None, None), size=(400, 400))
+
 menu_label = Label(text='Menu', font_size=30,opacity = 0)
 menu_label.pos_hint = {'x': 0.01, 'y': 0.4}
 Window.add_widget(menu_label)
@@ -40,6 +37,7 @@ create_label.pos_hint = {'x': 0.01, 'y': 0.4}
 Window.add_widget(create_label)
 
 sm = ScreenManager(transition=SlideTransition())
+s7 = None
 s6 = None
 s5 = None
 s4 = None
@@ -162,7 +160,10 @@ class MenuScreenUi(GridLayout):
         now = datetime.now()
         current_time = now.strftime("(%H-%M)")
         filename = '{}-{}.db'.format(today,current_time)
-        database = Database(filename)
+        try:
+            database = Database(filename)
+        except:
+            pass
         database2.insertData(filename)
         menu_label.opacity = 0
         create_label.opacity = 1
@@ -298,7 +299,10 @@ class ListScreenUi(GridLayout):
         temp_cp = float(self.price)
         temp_gst = int(gst)
         temp_factor = int(factor)
-        self.my_cp = str(temp_cp + ((temp_gst / 100.0) * temp_cp))
+        try:
+            self.my_cp = str(temp_cp + ((temp_gst / 100.0) * temp_cp))
+        except:
+            pass
         myList = self.my_cp.split('.')
         if int(myList[1][0:2]) > 50:
             self.my_cp = int(myList[0]) + 1
@@ -309,16 +313,30 @@ class ListScreenUi(GridLayout):
     def getObject(self):
         self.todayDate = date.today()
         self.name = self.nameInput.text
-        self.price = float(self.priceInput.text)
+        self.price = self.priceInput.text
+        self.price = float(self.price)
         self.calSareeNo()
         record = Bill(sareeName=self.name,costPrice=self.price,sellingPrice=float(self.my_cp),sareeNo=self.result,date=self.todayDate)
         return record
     def saveToDatabase(self,obj):
         global database
-        record = self.getObject()
-        database.insertData(record)
-        self.nameInput.text = ''
-        self.priceInput.text = ''
+        if str(self.priceInput.text).isdigit():
+            record = self.getObject()
+            database.insertData(record)
+            self.nameInput.text = ''
+            self.priceInput.text = ''
+        else:
+            if '.' in str(self.priceInput.text):
+                mylist = str(self.priceInput.text).split('.')
+                if mylist[0].isdigit() and mylist[1].isdigit():
+                    record = self.getObject()
+                    database.insertData(record)
+                    self.nameInput.text = ''
+                    self.priceInput.text = ''
+                else:
+                    popup.open()
+            else:
+                popup.open()
     def bindAllfunction(self):
         self.done.bind(on_press=self.switchBack)
         self.next.bind(on_press=self.saveToDatabase)
@@ -340,17 +358,13 @@ class SliderScreenUi(ScrollView):
         self.add_widget(self.layout)
 
     def display(self,obj):
-        global tableview,tableData
         filename = obj.text
         try:
-            self.db = Database(filename)
+            global database
+            database = Database(filename)
         except:
             pass
-        data = self.db.exportData()
-        # tableview.field_names = ['Saree Name','Cp','Sp','SareeNo','Date']
-        # for tuple in data:
-        #     tableview.add_row(list(tuple))
-        # print(tableview)
+        sm.switch_to(s7)
     def backToMenu(self,obj):
         global scroll_label,menu_label
         menu_label.opacity = 1
@@ -359,6 +373,39 @@ class SliderScreenUi(ScrollView):
     def bindAllFunct(self):
         self.back.bind(on_press=self.backToMenu)
 
+
+class SliderTableUi(ScrollView):
+    def __init__(self,**kwargs):
+        global database2
+        super(SliderTableUi,self).__init__(**kwargs)
+        self.size_hint_x = 0.8
+        self.size_hint_y = 0.8
+        self.pos_hint = {'center_x': 0.5, 'center_y': 0.4}
+        self.scroll_timeout = 250
+        self.scroll_distance = 20
+        self.layout = GridLayout(cols = 5,spacing =5,size_hint_y=None,padding =10)
+        self.layout.bind(minimum_height=self.layout.setter('height'))
+        self.back = Button(text='BACK', size_hint_y=None,color=[1,0,0,1])
+
+        self.layout.add_widget(Label(text=""))
+        self.layout.add_widget(Label(text=""))
+
+        self.layout.add_widget(Label(text=""))
+        self.layout.add_widget(Label(text=""))
+        self.add_widget(self.layout)
+        self.layout.add_widget(self.back)
+
+
+        self.layout.add_widget(Label(text="Saree Name",color=[0,1,1,1]))
+        self.layout.add_widget(Label(text="Cost Price",color=[0,1,0,1]))
+        self.layout.add_widget(Label(text="Selling Price",color=[0,1,0,1]))
+        self.layout.add_widget(Label(text="Saree No",color=[0,1,0,1]))
+        self.layout.add_widget(Label(text="Date",color=[0,1,0,1]))
+
+    def switchBack(self,obj):
+        sm.switch_to(s6)
+    def bindAllFunct(self):
+        self.back.bind(on_press=self.switchBack)
 class LoginScreen(Screen):
     def __init__(self,**kwargs):
         super(LoginScreen,self).__init__(**kwargs)
@@ -402,15 +449,38 @@ class SliderScreen(Screen):
         self.sliderui.layout.add_widget(self.sliderui.back)
         for buttonText in database2.exportData():
              for i in buttonText:
-                 print(i)
                  self.sliderui.layout.add_widget(Button(text=i, size_hint_y=None,height=80,on_press=self.sliderui.display,font_size=20))
     def on_pre_enter(self, *args):
         self.sliderui.layout.clear_widgets()
 
+class SliderTableScreen(Screen):
+    def __init__(self,**kwargs):
+        super(SliderTableScreen,self).__init__(**kwargs)
+        self.sliderui = SliderTableUi()
+        self.sliderui.bindAllFunct()
+        self.add_widget(self.sliderui)
+
+    def on_pre_enter(self, *args):
+        self.sliderui.layout.clear_widgets()
+
+    def on_enter(self, *args):
+        self.sliderui.layout.add_widget(Label(text="Saree Name",color=[0,1,0,1]))
+        self.sliderui.layout.add_widget(Label(text="Cost Price",color=[0,1,0,1]))
+        self.sliderui.layout.add_widget(Label(text="Selling Price",color=[0,1,0,1]))
+        self.sliderui.layout.add_widget(Label(text="Saree No",color=[0,1,0,1]))
+        self.sliderui.layout.add_widget(Label(text="Date",color=[0,1,0,1]))
+        for obj in database.exportData():
+             for data in obj:
+                    self.sliderui.layout.add_widget(Label(text=str(data), size_hint_y=None,font_size=20))
+        self.sliderui.layout.add_widget(Label(text=""))
+        self.sliderui.layout.add_widget(Label(text=""))
+        self.sliderui.layout.add_widget(self.sliderui.back)
+        self.sliderui.layout.add_widget(Label(text=""))
+        self.sliderui.layout.add_widget(Label(text=""))
 class TestApp(App):
 
     def build(self):
-        global s3,s2,s4,s5,s6
+        global s3,s2,s4,s5,s6,s7
         self.title = 'Manage Saree'
 
         try:
@@ -430,6 +500,8 @@ class TestApp(App):
         sm.add_widget(s5)
         s6 = SliderScreen(name='slider')
         sm.add_widget(s6)
+        s7 = SliderTableScreen(name='sliderTable')
+        sm.add_widget(s7)
         return sm
 
 if __name__ == '__main__':
